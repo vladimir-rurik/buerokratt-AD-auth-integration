@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: ad-auth-service-test
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+# AD Test Configuration
+ad:
+  federation:
+    entity-id: https://test.buerokratt.ee/saml/sp
+    acs-url: https://test.buerokratt.ee/auth/ad/acs
+    metadata-url: https://test-adfs.domain.com/FederationMetadata/2007-06/FederationMetadata.xml
+    keystore-path: src/test/resources/saml/test-keystore.jks
+    keystore-password: changeit
+    private-key-password: changeit
+    timeout: 5000
+
+  role-mapping:
+    default-role: ROLE_UNAUTHENTICATED
+    multi-group-strategy: HIGHEST_PRIORITY
+    rules:
+      - ad-group: CN=Test-Admins,OU=Test,DC=test,DC=local
+        role: ROLE_ADMINISTRATOR
+        priority: 1
+      - ad-group: CN=Test-Managers,OU=Test,DC=test,DC=local
+        role: ROLE_SERVICE_MANAGER
+        priority: 2
+      - ad-group: CN=Test-Agents,OU=Test,DC=test,DC=local
+        role: ROLE_CUSTOMER_SUPPORT_AGENT
+        priority: 3
+
+  resilience:
+    max-retries: 3
+    retry-backoff: 1000
+    circuit-breaker-failure-threshold: 50
+    circuit-breaker-wait-duration: 30000
+
+# Test logging
+logging:
+  level:
+    root: INFO
+    ee.buerokratt.adauth: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

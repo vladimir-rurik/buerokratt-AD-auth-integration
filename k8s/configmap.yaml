@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ad-config
+  namespace: buerokratt
+data:
+  metadata-url: "https://adfs.domain.com/FederationMetadata/2007-06/FederationMetadata.xml"
+  entity-id: "https://buerokratt.ee/saml/sp"
+  acs-url: "https://buerokratt.ee/auth/ad/acs"

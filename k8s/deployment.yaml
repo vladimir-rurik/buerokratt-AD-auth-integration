@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ad-auth-service
+  namespace: buerokratt
+  labels:
+    app: ad-auth-service
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ad-auth-service
+  template:
+    metadata:
+      labels:
+        app: ad-auth-service
+        version: v1
+    spec:
+      containers:
+      - name: ad-auth-service
+        image: buerokratt/ad-auth-service:1.0.0
+        ports:
+        - containerPort: 8085
+          name: http
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: AD_FEDERATION_METADATA_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ad-config
+              key: metadata-url
+        - name: AD_FEDERATION_ENTITY_ID
+          valueFrom:
+            configMapKeyRef:
+              name: ad-config
+              key: entity-id
+        - name: AD_FEDERATION_ACS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ad-config
+              key: acs-url
+        - name: SAML_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: saml-secrets
+              key: keystore-password
+        - name: SAML_PRIVATE_KEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: saml-secrets
+              key: private-key-password
+        - name: LOG_LEVEL
+          value: "INFO"
+        volumeMounts:
+        - name: saml-keystore
+          mountPath: /etc/seaml
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8085
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: saml-keystore
+        secret:
+          secretName: saml-keystore
+          items:
+          - key: keystore.jks
+            path: keystore.jks
+      imagePullSecrets:
+      - name: registry-credentials

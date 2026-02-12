@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  ad-auth-service:
+    build:
+      context: ../AD-Auth-Integration
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - AD_FEDERATION_METADATA_URL=https://adfs.test.domain.com/FederationMetadata/2007-06/FederationMetadata.xml
+      - AD_FEDERATION_ENTITY_ID=https://buerokratt.test.ee/saml/sp
+      - AD_FEDERATION_ACS_URL=https://buerokratt.test.ee/auth/ad/acs
+      - SAML_KEYSTORE_PASSWORD=changeit
+      - SAML_PRIVATE_KEY_PASSWORD=changeit
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./logs:/app/logs
+      - ./src/main/resources/saml:/etc/seaml:ro
+    networks:
+      - buerokratt-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  buerokratt-network:
+    external: true

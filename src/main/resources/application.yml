@@ -1,0 +1,67 @@
+server:
+  port: 8085
+  shutdown: graceful
+
+spring:
+  application:
+    name: ad-auth-service
+
+# AD Integration Configuration
+ad:
+  federation:
+    entity-id: ${AD_FEDERATION_ENTITY_ID:https://buerokratt.ee/saml/sp}
+    acs-url: ${AD_FEDERATION_ACS_URL:https://buerokratt.ee/auth/ad/acs}
+    metadata-url: ${AD_FEDERATION_METADATA_URL:https://adfs.domain.com/FederationMetadata/2007-06/FederationMetadata.xml}
+    timeout: 5000
+
+  role-mapping:
+    default-role: ROLE_UNAUTHENTICATED
+    multi-group-strategy: HIGHEST_PRIORITY
+    rules:
+      - ad-group: CN=Buerokratt-Admins,OU=Groups,DC=domain,DC=com
+        role: ROLE_ADMINISTRATOR
+        priority: 1
+      - ad-group: CN=Buerokratt-ServiceManagers,OU=Groups,DC=domain,DC=com
+        role: ROLE_SERVICE_MANAGER
+        priority: 2
+      - ad-group: CN=Buerokratt-CSAgents,OU=Groups,DC=domain,DC=com
+        role: ROLE_CUSTOMER_SUPPORT_AGENT
+        priority: 3
+      - ad-group: CN=Buerokratt-Trainers,OU=Groups,DC=domain,DC=com
+        role: ROLE_CHATBOT_TRAINER
+        priority: 4
+      - ad-group: CN=Buerokratt-Analysts,OU=Groups,DC=domain,DC=com
+        role: ROLE_ANALYST
+        priority: 5
+
+  resilience:
+    max-retries: 3
+    retry-backoff: 1000
+    circuit-breaker-failure-threshold: 50
+    circuit-breaker-wait-duration: 30000
+
+# Logging
+logging:
+  level:
+    root: INFO
+    ee.buerokratt.adauth: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: logs/ad-auth-service.log
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

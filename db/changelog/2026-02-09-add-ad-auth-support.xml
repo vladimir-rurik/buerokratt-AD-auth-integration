@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="add-ad-auth-columns" author="buerokratt">
+        <comment>Add AD authentication support to auth_users table</comment>
+
+        <addColumn tableName="auth_users">
+            <column name="auth_method" type="varchar(50)" defaultValue="LOCAL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ad_upn" type="varchar(255)"/>
+            <column name="ad_object_guid" type="varchar(36)"/>
+            <column name="ad_last_sync" type="timestamp"/>
+        </addColumn>
+
+        <addUniqueConstraint tableName="auth_users"
+            columnNames="ad_upn"
+            constraintName="uk_auth_users_ad_upn"/>
+
+        <addUniqueConstraint tableName="auth_users"
+            columnNames="ad_object_guid"
+            constraintName="uk_auth_users_ad_guid"/>
+
+        <createIndex tableName="auth_users"
+            indexName="idx_auth_users_ad_upn"
+            columnNames="ad_upn"/>
+
+        <createIndex tableName="auth_users"
+            indexName="idx_auth_users_ad_guid"
+            columnNames="ad_object_guid"/>
+    </changeSet>
+
+    <changeSet id="create-ad-users-view" author="buerokratt">
+        <comment>Create view for AD users</comment>
+
+        <sql>
+            CREATE OR REPLACE VIEW v_ad_users AS
+            SELECT
+                id, idCode, login, displayName, email,
+                firstName, lastName, authorities,
+                ad_upn, ad_object_guid, ad_last_sync
+            FROM auth_users
+            WHERE auth_method = 'AD';
+        </sql>
+    </changeSet>
+
+    <changeSet id="insert-ad-auth-method-config" author="buerokratt">
+        <comment>Add AD to allowed auth methods</comment>
+
+        <sql>
+            INSERT INTO config (key, value, description)
+            VALUES ('allowed_auth_methods', 'LOCAL,TARA,AD', 'Allowed authentication methods')
+            ON CONFLICT (key) DO UPDATE SET value = 'LOCAL,TARA,AD';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
